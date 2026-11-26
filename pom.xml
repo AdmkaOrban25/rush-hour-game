@@ -76,7 +76,7 @@
                 <version>3.2.5</version>
             </plugin>
 
-            <!-- Vekony JAR Main Class beallitassal -->
+            <!-- JAR csomagolas Main-Class beallitassal -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -166,7 +166,7 @@
                 </executions>
             </plugin>
 
-            <!-- Checkstyle: szigoru kodstilus-ellenorzes -->
+            <!-- Checkstyle: kodstilus-ellenorzes -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>

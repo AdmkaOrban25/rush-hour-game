@@ -1,0 +1,81 @@
+{
+  "id": 2,
+  "name": "Belvarosi csucsforgalom",
+  "difficulty": "Kozepes",
+  "rows": 6,
+  "cols": 6,
+  "vehicles": [
+    {
+      "id": "A",
+      "row": 2,
+      "col": 0,
+      "length": 2,
+      "orientation": "HORIZONTAL",
+      "target": true
+    },
+    {
+      "id": "B",
+      "row": 0,
+      "col": 2,
+      "length": 2,
+      "orientation": "VERTICAL",
+      "target": true
+    },
+    {
+      "id": "C",
+      "row": 1,
+      "col": 3,
+      "length": 2,
+      "orientation": "VERTICAL",
+      "target": false
+    },
+    {
+      "id": "D",
+      "row": 0,
+      "col": 4,
+      "length": 3,
+      "orientation": "VERTICAL",
+      "target": false
+    },
+    {
+      "id": "E",
+      "row": 3,
+      "col": 2,
+      "length": 3,
+      "orientation": "HORIZONTAL",
+      "target": false
+    },
+    {
+      "id": "F",
+      "row": 4,
+      "col": 1,
+      "length": 2,
+      "orientation": "HORIZONTAL",
+      "target": false
+    },
+    {
+      "id": "G",
+      "row": 3,
+      "col": 0,
+      "length": 2,
+      "orientation": "VERTICAL",
+      "target": false
+    },
+    {
+      "id": "H",
+      "row": 5,
+      "col": 2,
+      "length": 3,
+      "orientation": "HORIZONTAL",
+      "target": false
+    },
+    {
+      "id": "I",
+      "row": 0,
+      "col": 0,
+      "length": 2,
+      "orientation": "HORIZONTAL",
+      "target": false
+    }
+  ]
+}
