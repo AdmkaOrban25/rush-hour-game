@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import hu.nye.progtech.rushhour.model.Board;
 import hu.nye.progtech.rushhour.model.GameState;
 import hu.nye.progtech.rushhour.model.Orientation;
+import hu.nye.progtech.rushhour.model.PlayerTurn;
 import hu.nye.progtech.rushhour.model.Position;
 import hu.nye.progtech.rushhour.model.Vehicle;
 import java.io.IOException;
@@ -17,7 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A GameState objektumokat Jackson segitsegevel JSON formatumban mento es betolto tarolo.
+ * A ketjatekosos GameState objektumokat Jackson segitsegevel JSON formatumban mento tarolo.
  */
 public final class JsonGameStateRepository implements GameStateRepository {
 
@@ -45,7 +46,8 @@ public final class JsonGameStateRepository implements GameStateRepository {
                 Files.createDirectories(parent);
             }
             objectMapper.writeValue(filePath.toFile(), dto);
-            LOGGER.info("Jatekallapot elmentve JSON fajlba: {}", filePath);
+            LOGGER.info("Jatekallapot elmentve JSON fajlba: {} (lepesen: {})",
+                    filePath, gameState.getCurrentPlayerName());
         } catch (IOException ex) {
             throw new PersistenceException(
                     "Nem sikerult elmenteni a jatekot ide: " + filePath, ex);
@@ -62,7 +64,8 @@ public final class JsonGameStateRepository implements GameStateRepository {
         try {
             SavedGameDto dto = objectMapper.readValue(filePath.toFile(), SavedGameDto.class);
             GameState loadedState = fromDto(dto);
-            LOGGER.info("Jatekallapot betoltve JSON fajlbol: {}", filePath);
+            LOGGER.info("Jatekallapot betoltve JSON fajlbol: {} (lepesen: {})",
+                    filePath, loadedState.getCurrentPlayerName());
             return loadedState;
         } catch (IOException | IllegalArgumentException ex) {
             throw new PersistenceException(
@@ -73,7 +76,9 @@ public final class JsonGameStateRepository implements GameStateRepository {
     private SavedGameDto toDto(final GameState state) {
         Board board = state.getBoard();
         SavedGameDto dto = new SavedGameDto();
-        dto.setPlayerName(state.getPlayerName());
+        dto.setPlayerOneName(state.getPlayerOneName());
+        dto.setPlayerTwoName(state.getPlayerTwoName());
+        dto.setCurrentPlayer(state.getCurrentPlayer().name());
         dto.setLevelName(state.getLevelName());
         dto.setMoveCount(state.getMoveCount());
         dto.setRows(board.getRows());
@@ -104,8 +109,12 @@ public final class JsonGameStateRepository implements GameStateRepository {
         if (dto == null) {
             throw new IllegalArgumentException("Ures JSON tartalom.");
         }
-        Board.Builder boardBuilder = Board.builder(dto.getRows(), dto.getCols());
+        if (dto.getCurrentPlayer() == null || dto.getCurrentPlayer().isBlank()) {
+            throw new IllegalArgumentException("Hianyzik a lepesen levo jatekos a mentesbol.");
+        }
+        PlayerTurn currentTurn = PlayerTurn.valueOf(dto.getCurrentPlayer().trim());
 
+        Board.Builder boardBuilder = Board.builder(dto.getRows(), dto.getCols());
         if (dto.getVehicles() != null) {
             for (SavedVehicleDto vehicleDto : dto.getVehicles()) {
                 boardBuilder.addVehicle(toVehicle(vehicleDto));
@@ -118,7 +127,13 @@ public final class JsonGameStateRepository implements GameStateRepository {
         }
 
         Board board = boardBuilder.build();
-        return new GameState(dto.getPlayerName(), dto.getLevelName(), board, dto.getMoveCount());
+        return new GameState(
+                dto.getPlayerOneName(),
+                dto.getPlayerTwoName(),
+                dto.getLevelName(),
+                board,
+                dto.getMoveCount(),
+                currentTurn);
     }
 
     private Vehicle toVehicle(final SavedVehicleDto vehicleDto) {
@@ -148,11 +163,13 @@ public final class JsonGameStateRepository implements GameStateRepository {
     }
 
     /**
-     * A JSON szerializaciohoz hasznalt teljes jatekallapot DTO (Data Transfer Object).
+     * A JSON szerializaciohoz hasznalt teljes ketjatekosos jatekallapot DTO.
      */
     public static final class SavedGameDto {
 
-        private String playerName;
+        private String playerOneName;
+        private String playerTwoName;
+        private String currentPlayer;
         private String levelName;
         private int moveCount;
         private int rows;
@@ -167,21 +184,57 @@ public final class JsonGameStateRepository implements GameStateRepository {
         }
 
         /**
-         * Visszaadja a jatekos nevet.
+         * Visszaadja az elso jatekos nevet.
          *
-         * @return a jatekos neve
+         * @return az elso jatekos neve
          */
-        public String getPlayerName() {
-            return playerName;
+        public String getPlayerOneName() {
+            return playerOneName;
         }
 
         /**
-         * Beallitja a jatekos nevet.
+         * Beallitja az elso jatekos nevet.
          *
-         * @param value a jatekos neve
+         * @param value az elso jatekos neve
          */
-        public void setPlayerName(final String value) {
-            this.playerName = value;
+        public void setPlayerOneName(final String value) {
+            this.playerOneName = value;
+        }
+
+        /**
+         * Visszaadja a masodik jatekos nevet.
+         *
+         * @return a masodik jatekos neve
+         */
+        public String getPlayerTwoName() {
+            return playerTwoName;
+        }
+
+        /**
+         * Beallitja a masodik jatekos nevet.
+         *
+         * @param value a masodik jatekos neve
+         */
+        public void setPlayerTwoName(final String value) {
+            this.playerTwoName = value;
+        }
+
+        /**
+         * Visszaadja a lepesen levo jatekos azonositojat.
+         *
+         * @return a PlayerTurn neve szovegkent
+         */
+        public String getCurrentPlayer() {
+            return currentPlayer;
+        }
+
+        /**
+         * Beallitja a lepesen levo jatekos azonositojat.
+         *
+         * @param value a PlayerTurn neve szovegkent
+         */
+        public void setCurrentPlayer(final String value) {
+            this.currentPlayer = value;
         }
 
         /**

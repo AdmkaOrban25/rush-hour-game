@@ -12,6 +12,11 @@ import java.util.Objects;
  */
 public final class GamePersistenceService {
 
+    /** A megadott nevvel mentett allasok alapertelmezett mappaja. */
+    public static final Path DEFAULT_SAVES_DIR = Path.of("saves");
+
+    private static final String JSON_EXTENSION = ".json";
+
     private final GameStateRepository gameStateRepository;
     private final ScoreRepository scoreRepository;
 
@@ -43,6 +48,24 @@ public final class GamePersistenceService {
     }
 
     /**
+     * Elmenti a jatekallapotot a felhasznalo altal megadott nevvel a celmappaba.
+     *
+     * @param gameState a mentendo allapot
+     * @param savesDirectory a mentesek mappaja
+     * @param saveName a mentes neve (kiterjesztessel vagy anelkul)
+     * @return a letrehozott mentesi fajl teljes utvonala
+     * @throws PersistenceException ha a mentes sikertelen
+     */
+    public Path saveGameByName(
+            final GameState gameState,
+            final Path savesDirectory,
+            final String saveName) throws PersistenceException {
+        Path targetPath = resolveSavePath(savesDirectory, saveName);
+        gameStateRepository.save(gameState, targetPath);
+        return targetPath;
+    }
+
+    /**
      * Betolti a mentett jatekallapotot a megadott fajlbol.
      *
      * @param filePath a forrasfajl utvonala
@@ -54,21 +77,57 @@ public final class GamePersistenceService {
     }
 
     /**
-     * Rogziti egy megoldott palya eredmenyet a toplistaban.
+     * Betolt egy korabban nev szerint elmentett jatekallapotot.
      *
-     * @param completedState a megoldott jatekallapot
+     * @param savesDirectory a mentesek mappaja
+     * @param saveName a mentes neve (kiterjesztessel vagy anelkul)
+     * @return a betoltott GameState
+     * @throws PersistenceException ha a fajl nem talalhato vagy hibas
+     */
+    public GameState loadGameByName(final Path savesDirectory, final String saveName)
+            throws PersistenceException {
+        Path sourcePath = resolveSavePath(savesDirectory, saveName);
+        return gameStateRepository.load(sourcePath);
+    }
+
+    /**
+     * Ellenorzi a mentesi nevet es eloallitja a biztonsagos JSON fajlutvonalat.
+     *
+     * @param savesDirectory a mentesek mappaja
+     * @param saveName a megadott mentesi nev
+     * @return a feloldott fajlutvonal
+     */
+    public Path resolveSavePath(final Path savesDirectory, final String saveName) {
+        Objects.requireNonNull(savesDirectory, "A mentesi mappa nem lehet null.");
+        if (saveName == null || saveName.isBlank()) {
+            throw new IllegalArgumentException("A mentes neve nem lehet ures.");
+        }
+        String trimmed = saveName.trim();
+        if (trimmed.contains("/") || trimmed.contains("\\") || trimmed.contains("..")) {
+            throw new IllegalArgumentException(
+                    "A mentes neve nem tartalmazhat utvonal-elvalasztot: " + saveName);
+        }
+        String fileName = trimmed.endsWith(JSON_EXTENSION)
+                ? trimmed
+                : trimmed + JSON_EXTENSION;
+        return savesDirectory.resolve(fileName);
+    }
+
+    /**
+     * Rogziti egy befejezett ketjatekosos jatek gyoztesenek eredmenyet a toplistaban.
+     *
+     * @param completedState a lezart jatekallapot
      * @return a letrehozott es elmentett ScoreEntry
      * @throws PersistenceException adatbazis-hiba eseten
      */
     public ScoreEntry recordCompletedGame(final GameState completedState)
             throws PersistenceException {
         Objects.requireNonNull(completedState, "A jatekallapot nem lehet null.");
-        if (!completedState.isSolved()) {
-            throw new IllegalArgumentException(
-                    "Csak megoldott jatek eredmenye rogzitheto a toplistaban.");
-        }
+        String winnerName = completedState.getWinnerName().orElseThrow(
+                () -> new IllegalArgumentException(
+                        "Csak megnyert jatek eredmenye rogzitheto a toplistaban."));
         ScoreEntry entry = new ScoreEntry(
-                completedState.getPlayerName(),
+                winnerName,
                 completedState.getLevelName(),
                 completedState.getMoveCount(),
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));

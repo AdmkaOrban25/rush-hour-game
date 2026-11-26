@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import hu.nye.progtech.rushhour.model.Board;
 import hu.nye.progtech.rushhour.model.GameState;
 import hu.nye.progtech.rushhour.model.Orientation;
+import hu.nye.progtech.rushhour.model.PlayerTurn;
 import hu.nye.progtech.rushhour.model.Position;
 import hu.nye.progtech.rushhour.model.Vehicle;
 import java.io.IOException;
@@ -17,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * A JsonGameStateRepository egysegtesztjei.
+ * A ketjatekosos JsonGameStateRepository egysegtesztjei.
  */
 class JsonGameStateRepositoryTest {
 
@@ -29,15 +30,16 @@ class JsonGameStateRepositoryTest {
     }
 
     @Test
-    void testSaveAndLoadRoundTripPreservesFullGameState(@TempDir final Path tempDir)
+    void testSaveAndLoadRoundTripPreservesTwoPlayersAndCurrentTurn(@TempDir final Path tempDir)
             throws PersistenceException {
         Board board = Board.builder(5, 7)
                 .addVehicle(new Vehicle('A', new Position(2, 1), 2, Orientation.HORIZONTAL, true))
+                .addVehicle(new Vehicle('B', new Position(0, 3), 2, Orientation.VERTICAL, true))
                 .addVehicle(new Vehicle('C', new Position(0, 4), 3, Orientation.VERTICAL, false))
-                .addExitedTarget('B')
                 .build();
-        GameState original = new GameState("Adam", "Kezdo keresztezodes", board, 4);
-        Path saveFile = tempDir.resolve("saves").resolve("game.json");
+        GameState original = new GameState(
+                "Adam", "Laci", "Kezdo keresztezodes", board, 5, PlayerTurn.PLAYER_TWO);
+        Path saveFile = tempDir.resolve("saves").resolve("meccs1.json");
 
         repository.save(original, saveFile);
         assertTrue(Files.exists(saveFile));
@@ -45,9 +47,12 @@ class JsonGameStateRepositoryTest {
         GameState loaded = repository.load(saveFile);
 
         assertEquals(original, loaded);
+        assertEquals("Adam", loaded.getPlayerOneName());
+        assertEquals("Laci", loaded.getPlayerTwoName());
+        assertEquals(PlayerTurn.PLAYER_TWO, loaded.getCurrentPlayer());
+        assertEquals("Laci", loaded.getCurrentPlayerName());
         assertEquals(5, loaded.getBoard().getRows());
         assertEquals(7, loaded.getBoard().getCols());
-        assertTrue(loaded.getBoard().getExitedTargets().contains('B'));
     }
 
     @Test
@@ -64,5 +69,25 @@ class JsonGameStateRepositoryTest {
         Files.writeString(brokenFile, "{ ez nem ervenyes json");
 
         assertThrows(PersistenceException.class, () -> repository.load(brokenFile));
+    }
+
+    @Test
+    void testLoadMissingCurrentPlayerThrowsPersistenceException(@TempDir final Path tempDir)
+            throws IOException {
+        Path incompleteFile = tempDir.resolve("incomplete.json");
+        String json = """
+                {
+                  "playerOneName": "Adam",
+                  "playerTwoName": "Laci",
+                  "levelName": "Teszt",
+                  "moveCount": 2,
+                  "rows": 5,
+                  "cols": 6,
+                  "vehicles": []
+                }
+                """;
+        Files.writeString(incompleteFile, json);
+
+        assertThrows(PersistenceException.class, () -> repository.load(incompleteFile));
     }
 }
