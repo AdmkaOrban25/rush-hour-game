@@ -51,11 +51,20 @@ public final class MoveResult {
     }
 
     /**
-     * Megadja, hogy a lepes eredmenyekent megoldodott-e a teljes palya.
+     * Megadja, hogy a lepes eredmenyekent veget ert-e a jatek.
      *
-     * @return igaz, ha minden celjarmu kijutott
+     * @return igaz, ha valamelyik jatekos megnyerte a jatekot
      */
     public boolean isGameSolved() {
         return gameState.isSolved();
+    }
+
+    /**
+     * Visszaadja a gyoztes jatekos nevet, ha a lepes gyozelmet hozott.
+     *
+     * @return a gyoztes neve Optional-ben
+     */
+    public Optional<String> getWinnerName() {
+        return gameState.getWinnerName();
     }
 }

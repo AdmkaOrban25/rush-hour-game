@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 /**
- * A Board es GameState modellosztalyok egysegtesztjei.
+ * A Board es a ketjatekosos GameState modellosztalyok egysegtesztjei.
  */
 class BoardTest {
 
@@ -61,7 +61,7 @@ class BoardTest {
     }
 
     @Test
-    void testTwoTargetsMustBothExitToSolveBoard() {
+    void testTwoTargetsExitUpdatesBoardState() {
         Vehicle carA = new Vehicle('A', new Position(2, 4), 2, Orientation.HORIZONTAL, true);
         Vehicle carB = new Vehicle('B', new Position(4, 3), 2, Orientation.VERTICAL, true);
         Vehicle obstacle = new Vehicle('C', new Position(0, 0), 2, Orientation.HORIZONTAL, false);
@@ -75,9 +75,11 @@ class BoardTest {
         assertTrue(initial.hasReachedExit(carA));
         assertTrue(initial.hasReachedExit(carB));
         assertFalse(initial.hasReachedExit(obstacle));
+        assertFalse(initial.hasAnyTargetExited());
         assertFalse(initial.isSolved());
 
         Board afterAExits = initial.withExitedTarget('A');
+        assertTrue(afterAExits.hasAnyTargetExited());
         assertFalse(afterAExits.isSolved());
         assertTrue(afterAExits.getVehicle('A').isEmpty());
         assertTrue(afterAExits.getExitedTargets().contains('A'));
@@ -88,17 +90,32 @@ class BoardTest {
     }
 
     @Test
-    void testGameStateWithNextMoveIncrementsMoveCount() {
+    void testTwoPlayerGameStateAlternatesTurnsAndDetectsWinner() {
         Vehicle carA = new Vehicle('A', new Position(2, 1), 2, Orientation.HORIZONTAL, true);
-        Board board = Board.builder(6, 6).addVehicle(carA).build();
-        GameState initial = new GameState("Adam", "Level 1", board, 0);
+        Vehicle carB = new Vehicle('B', new Position(0, 3), 2, Orientation.VERTICAL, true);
+        Board board = Board.builder(6, 6)
+                .addVehicle(carA)
+                .addVehicle(carB)
+                .build();
+        GameState initial = new GameState(
+                "Adam", "Laci", "Level 1", board, 0, PlayerTurn.PLAYER_ONE);
+
+        assertEquals(PlayerTurn.PLAYER_ONE, initial.getCurrentPlayer());
+        assertEquals("Adam", initial.getCurrentPlayerName());
+        assertFalse(initial.isSolved());
 
         Board nextBoard = board.withUpdatedVehicle(carA.moved(Direction.RIGHT, 1));
-        GameState nextState = initial.withNextMove(nextBoard);
+        GameState afterP1Move = initial.withNextMove(nextBoard);
 
-        assertEquals(0, initial.getMoveCount());
-        assertEquals(1, nextState.getMoveCount());
-        Position actualPos = nextState.getBoard().getVehicle('A').orElseThrow().getPosition();
-        assertEquals(new Position(2, 2), actualPos);
+        assertEquals(1, afterP1Move.getMoveCount());
+        assertEquals(PlayerTurn.PLAYER_TWO, afterP1Move.getCurrentPlayer());
+        assertEquals("Laci", afterP1Move.getCurrentPlayerName());
+
+        Board winningBoard = nextBoard.withExitedTarget('B');
+        GameState afterP2Wins = afterP1Move.withNextMove(winningBoard);
+
+        assertTrue(afterP2Wins.isSolved());
+        assertEquals(PlayerTurn.PLAYER_TWO, afterP2Wins.getWinner().orElseThrow());
+        assertEquals("Laci", afterP2Wins.getWinnerName().orElseThrow());
     }
 }

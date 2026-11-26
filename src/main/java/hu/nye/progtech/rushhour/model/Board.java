@@ -109,6 +109,15 @@ public final class Board {
     }
 
     /**
+     * Megadja, hogy jutott-e mar ki legalabb egy celjarmu a tablarol.
+     *
+     * @return igaz, ha van mar kijutott celjarmu
+     */
+    public boolean hasAnyTargetExited() {
+        return !exitedTargets.isEmpty();
+    }
+
+    /**
      * Megkeres egy jarmuvet az azonositoja alapjan.
      *
      * @param vehicleId a keresett jarmu betujele
